@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="divineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" /> <stop offset="100%" stop-color="#06B6D4" /> </linearGradient>
+  </defs>
+  
+  <circle cx="50" cy="50" r="48" fill="none" stroke="url(#divineGrad)" stroke-width="4" stroke-opacity="0.3" />
+  
+  <path d="M 50 10 
+           A 40 40 0 1 1 50 90 
+           A 20 20 0 1 0 50 50 
+           A 20 20 0 1 1 50 10 
+           A 40 40 0 1 0 50 90 
+           Z" 
+        fill="url(#divineGrad)" 
+        stroke="none" />
+        
+  <circle cx="50" cy="50" r="14" fill="#FFFFFF" stroke="none"/>
+  <circle cx="50" cy="50" r="8" fill="url(#divineGrad)" stroke="none"/>
+</svg>
