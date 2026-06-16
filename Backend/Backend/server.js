@@ -1,13 +1,16 @@
 
-//require("./instrument.js");
+// require("./instrument.js"); // disabled: OpenTelemetry/Sentry bootstrap was loading a broken @opentelemetry/instrumentation package
 require('dotenv').config();
 
 const express = require('express');
-//const Sentry = require("@sentry/node");
+const Sentry = require("@sentry/node");
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
-
+const Razorpay = require('razorpay');
+const nodemailer = require('nodemailer');
+const NGO = require('./models/NGO');
+const Volunteer = require('./models/Volunteer');
+const Transaction = require('./models/Transaction');
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -17,24 +20,6 @@ mongoose.connect('mongodb://127.0.0.1:27017/ngo-portal')
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ DB Error:", err));
 
-// --- 1. SCHEMA ---
-const NGOSchema = new mongoose.Schema({
-    title: String,
-    city: String,
-    category: String,
-    desc: String,
-    image: String,
-    founder: String,
-    established: String,
-    phone: String,
-    email: String,
-    website: String,
-    // FUNDRAISING FIELDS
-    raised: { type: Number, default: 0 },
-    goal: { type: Number, default: 100000 }, 
-    status: { type: String, default: 'Pending' }
-});
-const NGO = mongoose.model('NGO', NGOSchema);
 
 // --- 2. ROUTES ---
 
@@ -78,9 +63,6 @@ app.delete('/api/admin/delete/:id', async (req, res) => {
     await NGO.findByIdAndDelete(req.params.id);
     res.json({ message: "Deleted" });
 });
-
-// START SERVER
-app.listen(5000, () => console.log("🚀 Server Port: 5000"));
 
 app.put('/api/ngos/:id/donate', async (req, res) => {
     try { 
@@ -208,12 +190,12 @@ app.post('/api/send-email', async (req, res) => {
 // 1. DROP THE SENTRY NET RIGHT HERE
 //Sentry.setupExpressErrorHandler(app);
 
-
 // 2. DROP YOUR CUSTOM ERROR CATCHER RIGHT HERE (If you don't have this, paste it)
 app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
 });
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 System Online on Port ${PORT}`));
 
