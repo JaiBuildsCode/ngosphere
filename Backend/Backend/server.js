@@ -24,12 +24,12 @@ mongoose.connect('mongodb://127.0.0.1:27017/ngo-portal')
 // --- 2. ROUTES ---
 
 // GET APPROVED NGOs (For Home Page)
-app.get('/api/ngos', async (req, res) => {
-    try {
-        const ngos = await NGO.find({ status: 'Approved' });
-        res.json(ngos);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+    app.get('/api/ngos', async (req, res) => {
+        try {
+            const ngos = await NGO.find({ status: 'Approved' });
+            res.json(ngos);
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
 
 // PUBLIC REGISTER
 app.post('/api/register-ngo', async (req, res) => {
@@ -67,14 +67,35 @@ app.delete('/api/admin/delete/:id', async (req, res) => {
 app.put('/api/ngos/:id/donate', async (req, res) => {
     try { 
         const { amount } = req.body; 
-        const ngo = await NGO.findById(req.params.id); 
-        if (!ngo) return res.status(404).send("NGO not found"); 
-        ngo.raised = (ngo.raised || 0) + parseInt(amount); 
-        await ngo.save(); 
-        res.json(ngo); 
-    } catch (err) { res.status(500).send(err.message); }
-});
+        
+        // LAYER 1: The Gatekeeper (Input Validation)
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: "A valid positive donation amount is required." });
+        }
 
+        // LAYER 2: Find the document
+        const ngo = await NGO.findById(req.params.id); 
+        if (!ngo) return res.status(404).json({ error: "NGO not found" }); 
+        
+        // LAYER 3: Secure Update 
+        // We use findByIdAndUpdate to bypass validation errors on old, incomplete NGO documents
+        ngo.raised = (ngo.raised || 0) + parseInt(amount); 
+        const updatedNgo = await NGO.findByIdAndUpdate(
+            req.params.id, 
+            { raised: ngo.raised }, 
+            { new: true }
+        );
+        
+        res.json(updatedNgo); 
+
+    } catch (err) { 
+        // THE ALARM: Logs the real error message to your local terminal
+        console.error("CRITICAL ALARM - Donation Route Failed:", err);
+        
+        // THE SHIELD: Hides raw database errors from hackers
+        res.status(500).json({ error: "Internal server error while processing donation." }); 
+    }
+});
 app.get('/api/volunteers', async (req, res) => {
     try { const volunteers = await Volunteer.find().sort({ submittedAt: -1 }); res.json(volunteers); } 
     catch (err) { res.status(500).json({ message: err.message }); }
