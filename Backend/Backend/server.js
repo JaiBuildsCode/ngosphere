@@ -1,13 +1,16 @@
 
-//require("./instrument.js");
+// require("./instrument.js"); // disabled: OpenTelemetry/Sentry bootstrap was loading a broken @opentelemetry/instrumentation package
 require('dotenv').config();
 
 const express = require('express');
-//const Sentry = require("@sentry/node");
+const Sentry = require("@sentry/node");
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
-
+const Razorpay = require('razorpay');
+const nodemailer = require('nodemailer');
+const NGO = require('./models/NGO');
+const Volunteer = require('./models/Volunteer');
+const Transaction = require('./models/Transaction');
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -17,34 +20,16 @@ mongoose.connect('mongodb://127.0.0.1:27017/ngo-portal')
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ DB Error:", err));
 
-// --- 1. SCHEMA ---
-const NGOSchema = new mongoose.Schema({
-    title: String,
-    city: String,
-    category: String,
-    desc: String,
-    image: String,
-    founder: String,
-    established: String,
-    phone: String,
-    email: String,
-    website: String,
-    // FUNDRAISING FIELDS
-    raised: { type: Number, default: 0 },
-    goal: { type: Number, default: 100000 }, 
-    status: { type: String, default: 'Pending' }
-});
-const NGO = mongoose.model('NGO', NGOSchema);
 
 // --- 2. ROUTES ---
 
 // GET APPROVED NGOs (For Home Page)
-app.get('/api/ngos', async (req, res) => {
-    try {
-        const ngos = await NGO.find({ status: 'Approved' });
-        res.json(ngos);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+    app.get('/api/ngos', async (req, res) => {
+        try {
+            const ngos = await NGO.find({ status: 'Approved' });
+            res.json(ngos);
+        } catch (err) { res.status(500).json({ error: err.message }); }
+    });
 
 // PUBLIC REGISTER
 app.post('/api/register-ngo', async (req, res) => {
@@ -79,20 +64,38 @@ app.delete('/api/admin/delete/:id', async (req, res) => {
     res.json({ message: "Deleted" });
 });
 
-// START SERVER
-app.listen(5000, () => console.log("🚀 Server Port: 5000"));
-
 app.put('/api/ngos/:id/donate', async (req, res) => {
     try { 
         const { amount } = req.body; 
-        const ngo = await NGO.findById(req.params.id); 
-        if (!ngo) return res.status(404).send("NGO not found"); 
-        ngo.raised = (ngo.raised || 0) + parseInt(amount); 
-        await ngo.save(); 
-        res.json(ngo); 
-    } catch (err) { res.status(500).send(err.message); }
-});
+        
+        // LAYER 1: The Gatekeeper (Input Validation)
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ error: "A valid positive donation amount is required." });
+        }
 
+        // LAYER 2: Find the document
+        const ngo = await NGO.findById(req.params.id); 
+        if (!ngo) return res.status(404).json({ error: "NGO not found" }); 
+        
+        // LAYER 3: Secure Update 
+        // We use findByIdAndUpdate to bypass validation errors on old, incomplete NGO documents
+        ngo.raised = (ngo.raised || 0) + parseInt(amount); 
+        const updatedNgo = await NGO.findByIdAndUpdate(
+            req.params.id, 
+            { raised: ngo.raised }, 
+            { new: true }
+        );
+        
+        res.json(updatedNgo); 
+
+    } catch (err) { 
+        // THE ALARM: Logs the real error message to your local terminal
+        console.error("CRITICAL ALARM - Donation Route Failed:", err);
+        
+        // THE SHIELD: Hides raw database errors from hackers
+        res.status(500).json({ error: "Internal server error while processing donation." }); 
+    }
+});
 app.get('/api/volunteers', async (req, res) => {
     try { const volunteers = await Volunteer.find().sort({ submittedAt: -1 }); res.json(volunteers); } 
     catch (err) { res.status(500).json({ message: err.message }); }
@@ -208,12 +211,12 @@ app.post('/api/send-email', async (req, res) => {
 // 1. DROP THE SENTRY NET RIGHT HERE
 //Sentry.setupExpressErrorHandler(app);
 
-
 // 2. DROP YOUR CUSTOM ERROR CATCHER RIGHT HERE (If you don't have this, paste it)
 app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).json({ success: false, message: "Internal Server Error" });
 });
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 System Online on Port ${PORT}`));
 
