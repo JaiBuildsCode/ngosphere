@@ -6,14 +6,37 @@ function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
-    if (email === 'admin@gmail.com' && password === 'admin123') {
-      navigate('/admin');
-    } else {
-      alert("Invalid Credentials! (Try: again)");
+    
+    try {
+        // 1. Send the data to your Node.js engine
+        const response = await fetch('http://localhost:5000/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }) // The exact payload Postman used
+        });
+
+        const data = await response.json();
+
+        // 2. Did the bouncer let us in? (Status 200 OK)
+        if (response.ok) {
+            // 3. SECURE THE KEYCARD: Save the JWT to the browser's local storage
+            localStorage.setItem('adminToken', data.token);
+            
+            // 4. Open the door
+            navigate('/admin');
+        } else {
+            // The bouncer kicked us out (400 Invalid Credentials)
+            alert(data.error || "Login failed.");
+        }
+    } catch (err) {
+        console.error("Network error:", err);
+        alert("The server is unreachable. Is your backend running?");
     }
-  };
+};
 
  return (
     <div className="min-h-screen w-full bg-slate-950 flex justify-center items-center p-4 font-sans relative overflow-hidden">

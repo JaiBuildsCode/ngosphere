@@ -53,37 +53,57 @@ const Admin = ({ stats: globalStats }) => {
   };
 
   // --- 2. DATA SYNC ---
-  const refreshData = useCallback(async (isInitial = false) => {
-    if (isInitial) setLoading(true);
-    try {
-      const [ngoRes, volRes] = await Promise.allSettled([
-        api.get('/admin/ngos'),
-        api.get('/volunteers')
-      ]);
+const refreshData = useCallback(async (isInitial = false) => {
+  if (isInitial) setLoading(true);
+  try {
+    // 1. Pull the master keycard out of the browser storage
+    const token = localStorage.getItem('adminToken');
 
-      const ngos = ngoRes.status === 'fulfilled' ? ngoRes.value.data : [];
-      const volunteers = volRes.status === 'fulfilled' ? volRes.value.data : [];
+    // 2. Build the security configuration header
+    const config = {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    };
 
-      const liveTransactions = ngos.filter(n => n.raised > 0).map(n => ({
-        id: `TXN-${n._id.slice(-6).toUpperCase()}`,
+    // 3. Fire requests concurrently, passing the security config to the admin route
+    const [ngoRes, volRes] = await Promise.allSettled([
+      api.get('/admin/ngos', config), // Hit the vault route we built, or verify your backend has /admin/ngos guarded
+      api.get('/volunteers')
+    ]);
+
+    // 4. Extract data safely with deep defensive checks
+    const ngos = ngoRes.status === 'fulfilled' && Array.isArray(ngoRes.value.data) ? ngoRes.value.data : [];
+    const volunteers = volRes.status === 'fulfilled' && Array.isArray(volRes.value.data) ? volRes.value.data : [];
+// 4. Extract data safely with deep defensive checks
+    const ngos = ngoRes.status === 'fulfilled' && Array.isArray(ngoRes.value.data) ? ngoRes.value.data : [];
+    
+    // INJECT THIS DIAGNOSTIC LINE RIGHT HERE:
+    console.log("THE VAULT RETURNED:", ngos);
+    // 5. Map data defensively, checking if _id exists before slicing
+    const liveTransactions = ngos
+      .filter(n => n && n.raised > 0)
+      .map(n => ({
+        id: n._id ? `TXN-${n._id.slice(-6).toUpperCase()}` : 'TXN-UNKNOWN',
         date: new Date().toLocaleDateString('en-GB'),
         donor: "Anonymous",
-        entity: n.title,
+        entity: n.title || "Unknown NGO",
         amount: n.raised,
         status: 'Verified'
       }));
 
-      // Removed MOCK_TRANSACTIONS and MOCK_CHART_DATA from here to prevent undefined errors
-      setData({ ngos, volunteers, transactions: liveTransactions, chartData: [] });
-    } catch (e) { console.error("Sync Error"); } 
-    finally { setLoading(false); }
-  }, []);
+    // 6. Push verified data into the state
+    setData({ ngos, volunteers, transactions: liveTransactions, chartData: [] });
 
-  useEffect(() => { refreshData(true); }, [refreshData]);
+  } catch (e) { 
+    // STOP CONCEALING THE REASON. READ THE ERROR.
+    console.error("Critical Dashboard Sync Failure:", e); 
+  } finally { 
+    setLoading(false); 
+  }
+}, []);
 
-  // --- 3. ACTIONS & EMAIL ENGINE ---
-
-  const sendNotification = async (to, name, role, type) => {
+const sendNotification = async (to, name, role, type) => {
       const subject = type === 'Approve' ? "🎉 Welcome to NGOSphere!" : "⚠️ NGOSphere Update";
       const text = type === 'Approve' 
         ? `Hi ${name},\n\nCongratulations! Your application to join NGOSphere as a ${role} has been APPROVED.\n\nYou can now log in and start making an impact.\n\n- The Admin Team`
@@ -119,9 +139,10 @@ const Admin = ({ stats: globalStats }) => {
           alert("⚠️ Database Error: Could not approve.");
       }
   };
-//ma chudi
+
   const getDynamicChartData = () => {
-      const dynamicData = [];
+      con
+ dynamicData = [];
       const today = new Date();
       let currentImpact = 28500; 
       

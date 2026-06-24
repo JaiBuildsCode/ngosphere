@@ -1,7 +1,8 @@
-
+const bcrypt = require ('bcryptjs');
+const User = require ('./models/User');
 // require("./instrument.js"); // disabled: OpenTelemetry/Sentry bootstrap was loading a broken @opentelemetry/instrumentation package
 require('dotenv').config();
-
+const jwt = require('jsonwebtoken');
 const express = require('express');
 const Sentry = require("@sentry/node");
 const mongoose = require('mongoose');
@@ -21,6 +22,78 @@ mongoose.connect('mongodb://127.0.0.1:27017/ngo-portal')
   .catch(err => console.error("❌ DB Error:", err));
 
 
+  const requireAuth = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(' ')[1]; // Strips the "Bearer " part
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Attach the decoded payload to the request
+        next(); // Pass the baton, let them in
+    } catch (err) {
+        return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
+    }
+};
+
+
+const requireAut = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: "Unauthorized: No token provided" });
+    }
+
+    const token = authHeader.split(' ')[1]; // Strips the "Bearer " part
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Attach the decoded payload to the request
+        next(); // Pass the baton, let them in
+    } catch (err) {
+        return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
+    }
+};
+const verifyAdmin = (req, res, next) => {
+    // 1. Look at the incoming request and grab the Authorization header
+    const token = req.header('Authorization');
+    
+    // 2. If they didn't bring a keycard at all, kick them out immediately
+    if (!token) {
+        return res.status(401).json({ error: "Access denied. No token provided." });
+    }
+
+    try {
+        // 3. Tokens usually come in as "Bearer <token>". We strip the word "Bearer ".
+        const actualToken = token.startsWith('Bearer ') ? token.slice(7, token.length) : token;
+        
+        // 4. Cryptographically verify the token hasn't been tampered with
+        const verified = jwt.verify(actualToken, process.env.JWT_SECRET);
+        
+        // 5. THE DEADBOLT: Are they actually an admin?
+        if (verified.role !== 'admin') {
+            return res.status(403).json({ error: "Forbidden. Admin access required." });
+        }
+
+        // 6. They passed. Attach their ID to the request and open the door (next)
+        req.user = verified;
+        next(); 
+
+    } catch (err) {
+        return res.status(400).json({ error: "Invalid or expired token." });
+    }
+};
+app.get('/api/admin/dashboard', verifyAdmin, (req, res) => {
+    // If the code reaches this point, the user is 100% a verified admin.
+    return res.status(200).json({ 
+        message: "Welcome to the Admin Vault. You are fully authorized.",
+        secureData: "This is the data that buys your freedom." 
+    });
+});
 // --- 2. ROUTES ---
 
 // GET APPROVED NGOs (For Home Page)
@@ -31,6 +104,75 @@ mongoose.connect('mongodb://127.0.0.1:27017/ngo-portal')
         } catch (err) { res.status(500).json({ error: err.message }); }
     });
 
+    
+    // JWT Route
+
+ app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // 1. The Lookup: Does this email even exist?
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ error: "Invalid credentials." });
+        }
+
+        // 2. The Scanner: Compare the raw password to the database hash
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ error: "Invalid credentials." });
+        }
+
+        // 3. The Keycard: Mint the JWT with their actual database ID and Role
+        const token = jwt.sign(
+            { userId: user._id, role: user.role }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '1h' }
+        );
+        
+        return res.json({ message: "Login successful", token: token });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal server error during login." });
+    }
+});
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { name,   email, password, adminSecret } = req.body;
+
+        let assignedRole = 'user';
+        // If the secret matches our hardcoded master key, upgrade the role
+        if (adminSecret === 'NGO_MASTER_2026') {
+            assignedRole = 'admin';
+        }
+        // 1. The Guard: Check if the email is already taken
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: "Email already in use." });
+        }
+
+        // 2. The Shredder: Hash the password (NEVER save plain text)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 3. The Vault: Save to database
+        const newUser = new User({
+            name: name,
+            email: email,
+            password: hashedPassword,
+            role: assignedRole
+        });
+
+        await newUser.save();
+
+        return res.status(201).json({ message: "User registered successfully." });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: "Internal server error during registration." });
+    }
+});
 // PUBLIC REGISTER
 app.post('/api/register-ngo', async (req, res) => {
     try {
@@ -47,11 +189,20 @@ app.post('/api/register-ngo', async (req, res) => {
 // --- ADMIN ROUTES ---
 
 // GET ALL
-app.get('/api/admin/all', async (req, res) => {
-    const ngos = await NGO.find();
-    res.json(ngos);
+// 1. Rename the route to match the frontend, and drop the verifyAdmin bouncer in the middle
+app.get('/api/api/admin/ngos', verifyAdmin, async (req, res) => {
+    try {
+        // 2. Safely fetch every single NGO from MongoDB
+        const ngos = await NGO.find();
+        
+        // 3. Return the raw array to the frontend engine
+        res.status(200).json(ngos);
+    } catch (err) {
+        // 4. Prevent backend crashes with proper error logging
+        console.error("Admin data fetch crash:", err);
+        res.status(500).json({ error: "Internal server error fetching admin records." });
+    }
 });
-
 // APPROVE
 app.put('/api/admin/approve/:id', async (req, res) => {
     await NGO.findByIdAndUpdate(req.params.id, { status: 'Approved' });
@@ -64,6 +215,9 @@ app.delete('/api/admin/delete/:id', async (req, res) => {
     res.json({ message: "Deleted" });
 });
 
+app.get('/api/protected-data', requireAuth, (req, res) => {
+    res.json({ message: "Welcome to the vault.", user: req.user });
+});
 app.put('/api/ngos/:id/donate', async (req, res) => {
     try { 
         const { amount } = req.body; 
@@ -115,6 +269,8 @@ app.patch('/api/volunteers/approve/:id', async (req, res) => {
     try { const vol = await Volunteer.findByIdAndUpdate(req.params.id, { status: "Approved" }, { new: true }); res.json(vol); } 
     catch (err) { res.status(500).json({ error: err.message }); }
 });
+
+
 
 // Payment Route - Create Order
 app.post('/api/payment/order', async (req, res) => {
@@ -191,7 +347,7 @@ app.post('/api/send-email', async (req, res) => {
             pass: process.env.EMAIL_PASS
         }
     });
-//fuckkkkk
+
     const mailOptions = {
         from: 'NGOSphere Admin <no-reply@ngosphere.com>', // Note: Gmail often overrides this with your actual email address
         to: to,
