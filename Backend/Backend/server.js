@@ -191,7 +191,7 @@ app.post('/api/register-ngo', async (req, res) => {
 
 // GET ALL
 // 1. Rename the route to match the frontend, and drop the verifyAdmin bouncer in the middle
-app.get('/api/api/admin/ngos', verifyAdmin, async (req, res) => {
+app.get('/api/admin/ngos', verifyAdmin, async (req, res) => {
     try {
         // 2. Safely fetch every single NGO from MongoDB
         const ngos = await NGO.find();
@@ -251,27 +251,29 @@ app.put('/api/ngos/:id/donate', async (req, res) => {
         res.status(500).json({ error: "Internal server error while processing donation." }); 
     }
 });
-app.get('/api/volunteers', async (req, res) => {
+// Protected: Only admins can view the full list
+app.get('/api/volunteers', requireAuth, async (req, res) => {
     try { const volunteers = await Volunteer.find().sort({ submittedAt: -1 }); res.json(volunteers); } 
     catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// Public: Anyone can apply
 app.post('/api/volunteers', async (req, res) => {
     try { const newVol = new Volunteer(req.body); await newVol.save(); res.status(201).json(newVol); } 
     catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-app.delete('/api/volunteers/:id', async (req, res) => {
+// Protected: Only admins can delete
+app.delete('/api/volunteers/:id', requireAuth, async (req, res) => {
     try { await Volunteer.findByIdAndDelete(req.params.id); res.json({ message: "Volunteer Removed" }); } 
     catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.patch('/api/volunteers/approve/:id', async (req, res) => {
+// Protected: Only admins can approve
+app.patch('/api/volunteers/approve/:id', requireAuth, async (req, res) => {
     try { const vol = await Volunteer.findByIdAndUpdate(req.params.id, { status: "Approved" }, { new: true }); res.json(vol); } 
     catch (err) { res.status(500).json({ error: err.message }); }
 });
-
-
 
 // Payment Route - Create Order
 app.post('/api/payment/order', async (req, res) => {
