@@ -11,8 +11,8 @@ const handleLogin = async (e) => {
     
     try {
         // 1. Send the data to your Node.js engine
-        const response = await fetch('https://ngosphere.onrender.com//api/auth/login', {
-            method: 'POST',
+const response = await fetch('https://ngo-guide-portal.onrender.com/api/auth/login', {
+              method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
             },
