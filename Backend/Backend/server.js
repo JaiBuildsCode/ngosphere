@@ -18,7 +18,7 @@ app.use(cors());
 
 // CONNECT DB
 mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ngo-portal')
-  .then(() => console.log('Database connected successfully'))
+  .then(() => console.log("✅ MongoDB Connected"))
   //.catch(err => console.error('Database connection error:', err)); then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.error("❌ DB Error:", err));
 
