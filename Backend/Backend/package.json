@@ -52,7 +52,7 @@
     "merge-descriptors": "^2.0.0",
     "mime-db": "^1.54.0",
     "mime-types": "^3.0.2",
-    "mongodb": "^7.0.0",
+    "mongodb": "^7.3.0",
     "mongodb-connection-string-url": "^7.0.0",
     "mongoos": "^0.0.1-security",
     "mongoose": "^9.1.4",
