@@ -31,6 +31,7 @@ const MOCK_TRANSACTIONS = [
 // 1. OPEN THE VAULT TO ACCEPT GLOBAL STATS
 const Admin = ({ stats: globalStats }) => {
   const navigate = useNavigate();
+  const [volunteers, setVolunteers] = useState([]);
   const [view, setView] = useState('dashboard');
   const [data, setData] = useState({ ngos: [], volunteers: [], transactions: [], chartData: [] });
   const [loading, setLoading] = useState(false);
@@ -69,7 +70,7 @@ const refreshData = useCallback(async (isInitial = false) => {
     // 3. Fire requests concurrently, passing the security config to the admin route
     const [ngoRes, volRes] = await Promise.allSettled([
       api.get('/admin/ngos', config), // Hit the vault route we built, or verify your backend has /admin/ngos guarded
-      api.get('/volunteers')
+      api.get('/volunteers', config) // <--- ADD THE CONFIG HERE
     ]);
 
 // 4. Extract data safely with deep defensive checks
