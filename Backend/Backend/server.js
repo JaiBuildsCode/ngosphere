@@ -13,6 +13,7 @@ const NGO = require('./models/NGO');
 const Volunteer = require('./models/Volunteer');
 const Transaction = require('./models/Transaction');
 const app = express();
+
 app.use(express.json());
 app.use(cors());
 
@@ -252,25 +253,25 @@ app.put('/api/ngos/:id/donate', async (req, res) => {
     }
 });
 // Protected: Only admins can view the full list
-app.get('/api/volunteer', requireAuth, async (req, res) => {
-    try { const volunteer = await Volunteer.find().sort({ submittedAt: -1 }); res.json(volunteer); } 
+app.get('/api/volunteers', requireAuth, async (req, res) => {
+    try { const volunteers = await Volunteer.find().sort({ submittedAt: -1 }); res.json(volunteers); } 
     catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 // Public: Anyone can apply
-app.post('/api/volunteer', async (req, res) => {
+app.post('/api/volunteers', async (req, res) => {
     try { const newVol = new Volunteer(req.body); await newVol.save(); res.status(201).json(newVol); } 
     catch (err) { res.status(400).json({ message: err.message }); }
 });
 
 // Protected: Only admins can delete
-app.delete('/api/volunteer/:id', requireAuth, async (req, res) => {
+app.delete('/api/volunteers/:id', requireAuth, async (req, res) => {
     try { await Volunteer.findByIdAndDelete(req.params.id); res.json({ message: "Volunteer Removed" }); } 
     catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // Protected: Only admins can approve
-app.patch('/api/volunteer/approve/:id', requireAuth, async (req, res) => {
+app.patch('/api/volunteers/approve/:id', requireAuth, async (req, res) => {
     try { const vol = await Volunteer.findByIdAndUpdate(req.params.id, { status: "Approved" }, { new: true }); res.json(vol); } 
     catch (err) { res.status(500).json({ error: err.message }); }
 });
