@@ -139,7 +139,7 @@ const sendNotification = async (to, name, role, type) => {
 
   const getDynamicChartData = () => {
       
- dynamicData = [];
+ const dynamicData = [];
       const today = new Date();
       let currentImpact = 28500; 
       
