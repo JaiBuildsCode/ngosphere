@@ -72,9 +72,6 @@ const refreshData = useCallback(async (isInitial = false) => {
       api.get('/volunteers')
     ]);
 
-    // 4. Extract data safely with deep defensive checks
-    const ngos = ngoRes.status === 'fulfilled' && Array.isArray(ngoRes.value.data) ? ngoRes.value.data : [];
-    const volunteers = volRes.status === 'fulfilled' && Array.isArray(volRes.value.data) ? volRes.value.data : [];
 // 4. Extract data safely with deep defensive checks
     const ngos = ngoRes.status === 'fulfilled' && Array.isArray(ngoRes.value.data) ? ngoRes.value.data : [];
     
