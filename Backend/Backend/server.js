@@ -13,6 +13,7 @@ const NGO = require('./models/NGO');
 const Volunteer = require('./models/Volunteer');
 const Transaction = require('./models/Transaction');
 const app = express();
+const [volunteers, setVolunteers] = useState([]);
 app.use(express.json());
 app.use(cors());
 
