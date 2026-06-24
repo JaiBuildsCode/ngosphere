@@ -119,7 +119,7 @@ const Admin = ({ stats: globalStats }) => {
           alert("⚠️ Database Error: Could not approve.");
       }
   };
-
+//ma chudi
   const getDynamicChartData = () => {
       const dynamicData = [];
       const today = new Date();
