@@ -251,7 +251,7 @@ const sendNotification = async (to, name, role, type) => {
         {view === 'dashboard' && (
             <div className="space-y-8 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <StatCard label="Lives Impacted" value={formatCurrency(globalStats?.totalDonations || 0)} icon="💎" color="text-blue-400" />
+                    <StatCard label="Funds Raised" value={formatCurrency(globalStats?.totalDonations || 0)} icon="💎" color="text-blue-400" />
                     <StatCard label="Live Ops" value={data.ngos.filter(n=>n.status==='Approved').length} icon="📡" color="text-emerald-400" />
                     <StatCard label="Personnel" value={data.volunteers.length} icon="⚡" color="text-purple-400" />
                     <StatCard label="Action Items" value={localStats.pending} icon="⚠️" color="text-yellow-400" />
