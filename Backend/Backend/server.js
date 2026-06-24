@@ -191,7 +191,7 @@ app.post('/api/send-email', async (req, res) => {
             pass: process.env.EMAIL_PASS
         }
     });
-
+//fuckkkkk
     const mailOptions = {
         from: 'NGOSphere Admin <no-reply@ngosphere.com>', // Note: Gmail often overrides this with your actual email address
         to: to,
