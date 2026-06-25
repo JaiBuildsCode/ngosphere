@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import api from '../api';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-
-// Make sure you import your intelligent API client at the top of the file
-import api from '../api'; // adjust the path to wherever your api.js is
 
 const handleLogin = async (e) => {
     e.preventDefault();
