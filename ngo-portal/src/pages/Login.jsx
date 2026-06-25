@@ -6,38 +6,29 @@ function Login() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
+// Make sure you import your intelligent API client at the top of the file
+import api from '../api'; // adjust the path to wherever your api.js is
+
 const handleLogin = async (e) => {
     e.preventDefault();
     
     try {
-        // 1. Send the data to your Node.js engine
-const response = await fetch('https://ngo-guide-portal.onrender.com/api/auth/login', {
-              method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }) // The exact payload Postman used
-        });
+        // 1. Use your API client. It already knows the base URL and headers!
+        const response = await api.post('/auth/login', { email, password });
 
-        const data = await response.json();
-
-        // 2. Did the bouncer let us in? (Status 200 OK)
-        if (response.ok) {
-            // 3. SECURE THE KEYCARD: Save the JWT to the browser's local storage
-            localStorage.setItem('adminToken', data.token);
-            
-            // 4. Open the door
-            navigate('/admin');
-        } else {
-            // The bouncer kicked us out (400 Invalid Credentials)
-            alert(data.error || "Login failed.");
-        }
+        // 2. SECURE THE KEYCARD using the EXACT name the interceptor expects
+        localStorage.setItem('token', response.data.token);
+        
+        // 3. THE NUCLEAR REDIRECT: This forces the browser to drop the old state 
+        // and do a hard reload of the dashboard, guaranteeing your data auto-refreshes.
+        window.location.href = '/admin'; // Change this if your dashboard URL is different
+        
     } catch (err) {
-        console.error("Network error:", err);
-        alert("The server is unreachable. Is your backend running?");
+        console.error("Login Error:", err);
+        // Axios puts your backend error messages inside err.response.data
+        alert(err.response?.data?.error || err.response?.data?.message || "Login failed.");
     }
 };
-
  return (
     <div className="min-h-screen w-full bg-slate-950 flex justify-center items-center p-4 font-sans relative overflow-hidden">
       
