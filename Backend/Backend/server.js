@@ -11,8 +11,8 @@ const Razorpay = require('razorpay');
 const nodemailer = require('nodemailer');
 const NGO = require('./models/NGO');
 const Volunteer = require('./models/Volunteer');
-const [volunteers, setVolunteers] = useState([]);
 const Transaction = require('./models/Transaction');
+const requireAuth = require('./middleware/auth')
 const app = express();
 app.use(express.json());
 app.use(cors());
