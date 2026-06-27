@@ -52,44 +52,27 @@ const Admin = ({ stats: globalStats }) => {
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
   };
-// --- 2. DATA SYNC ---
+
+  //// --- 2. DATA SYNC ---
 const refreshData = useCallback(async (isInitial = false) => {
-    if (isInitial) setLoading(true);
-    
-    try {
-        // Look how clean this is. No manual tokens. No config headers.
-        // Your api.js client handles all the security invisibly in the background.
-        
-        // Use Promise.all to fetch both endpoints at the exact same time (much faster)
-        const [ngosRes, volunteersRes] = await Promise.all([
-            api.get('/admin/ngos'),
-            api.get('/volunteers')
-        ]);
-        
-        // Put your actual state variables here (assuming these are their names)
-        // setNgos(ngosRes.data);
-        // setVolunteers(volunteersRes.data);
-        
-        console.log("Vault data synced successfully.");
-        
-    } catch (error) {
-        console.error("Refresh failed:", error);
-    } finally {
-        setLoading(false); // Always turn off the spinning loader, even if it fails
-    }
-}, []);
-    // 3. Fire requests concurrently, passing the security config to the admin route
+  if (isInitial) setLoading(true);
+  
+  try {
+    // 1. Fire requests concurrently USING ONLY THE API CLIENT. No manual config.
     const [ngoRes, volRes] = await Promise.allSettled([
-      api.get('/admin/ngos', config), // Hit the vault route we built, or verify your backend has /admin/ngos guarded
-      api.get('/volunteers', config) // <--- ADD THE CONFIG HERE
+      api.get('/admin/ngos'),
+      api.get('/volunteers')
     ]);
 
-// 4. Extract data safely with deep defensive checks
+    // 2. Extract data safely with deep defensive checks
     const ngos = ngoRes.status === 'fulfilled' && Array.isArray(ngoRes.value.data) ? ngoRes.value.data : [];
     
-    // INJECT THIS DIAGNOSTIC LINE RIGHT HERE:
-    console.log("THE VAULT RETURNED:", ngos);
-    // 5. Map data defensively, checking if _id exists before slicing
+    // You forgot to extract the volunteers in your last version. Here it is.
+    const volunteers = volRes.status === 'fulfilled' && Array.isArray(volRes.value.data) ? volRes.value.data : [];
+    
+    console.log("THE VAULT RETURNED NGOS:", ngos);
+    
+    // 3. Map data defensively
     const liveTransactions = ngos
       .filter(n => n && n.raised > 0)
       .map(n => ({
@@ -101,11 +84,10 @@ const refreshData = useCallback(async (isInitial = false) => {
         status: 'Verified'
       }));
 
-    // 6. Push verified data into the state
+    // 4. Push verified data into the state
     setData({ ngos, volunteers, transactions: liveTransactions, chartData: [] });
 
   } catch (e) { 
-    // STOP CONCEALING THE REASON. READ THE ERROR.
     console.error("Critical Dashboard Sync Failure:", e); 
   } finally { 
     setLoading(false); 
