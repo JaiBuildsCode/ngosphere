@@ -93,6 +93,10 @@ const refreshData = useCallback(async (isInitial = false) => {
     setLoading(false); 
   }
 }, []);
+// This tells React: "The split-second this dashboard mounts, run the data fetch."
+useEffect(() => {
+    refreshData(true);
+}, [refreshData]);
 
 const sendNotification = async (to, name, role, type) => {
       const subject = type === 'Approve' ? "🎉 Welcome to NGOSphere!" : "⚠️ NGOSphere Update";
