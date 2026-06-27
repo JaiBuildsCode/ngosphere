@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 //import Footer from './components/Footer'; // Professional apps always have one
 
 // PAGES
+import ProtectedRoute from './pages/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
@@ -75,7 +76,14 @@ function App() {
             <Route path="/" element={<Home stats={platformStats} onDonate={processDonation} />} />
             <Route path="/about" element={<About />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin" element={<Admin stats={platformStats} />} />
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <Admin stats={platformStats} />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/register" element={<RegisterNGO />} /> 
             
             {/* 404 Page is better for SEO and Professionalism than a wildcard redirect */}

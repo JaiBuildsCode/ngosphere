@@ -52,21 +52,32 @@ const Admin = ({ stats: globalStats }) => {
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
   };
-
-  // --- 2. DATA SYNC ---
+// --- 2. DATA SYNC ---
 const refreshData = useCallback(async (isInitial = false) => {
-  if (isInitial) setLoading(true);
-  try {
-    // 1. Pull the master keycard out of the browser storage
-    const token = localStorage.getItem('adminToken');
-
-    // 2. Build the security configuration header
-    const config = {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    };
-
+    if (isInitial) setLoading(true);
+    
+    try {
+        // Look how clean this is. No manual tokens. No config headers.
+        // Your api.js client handles all the security invisibly in the background.
+        
+        // Use Promise.all to fetch both endpoints at the exact same time (much faster)
+        const [ngosRes, volunteersRes] = await Promise.all([
+            api.get('/admin/ngos'),
+            api.get('/volunteers')
+        ]);
+        
+        // Put your actual state variables here (assuming these are their names)
+        // setNgos(ngosRes.data);
+        // setVolunteers(volunteersRes.data);
+        
+        console.log("Vault data synced successfully.");
+        
+    } catch (error) {
+        console.error("Refresh failed:", error);
+    } finally {
+        setLoading(false); // Always turn off the spinning loader, even if it fails
+    }
+}, []);
     // 3. Fire requests concurrently, passing the security config to the admin route
     const [ngoRes, volRes] = await Promise.allSettled([
       api.get('/admin/ngos', config), // Hit the vault route we built, or verify your backend has /admin/ngos guarded
