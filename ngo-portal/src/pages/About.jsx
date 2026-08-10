@@ -14,20 +14,7 @@ function About() {
   };
 
   const supportTeam = [
-    {
-      name: "Ojas More",
-      role: "Strategy & Outreach",
-      bio: "Focused on the project narrative, stakeholder requirements, and high-level conceptual feedback.",
-      tasks: ["Ideation", "Pitch Deck", "User Feedback"],
-      image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=80"
-    },
-    {
-      name: "Disha Desale",
-      role: "Project Coordinator",
-      bio: "Managed the project timeline, documentation formatting, and administrative organization.",
-      tasks: ["Scheduling", "Documentation", "Coordination"],
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=800&q=80"
-    }
+  
   ];
 
   const timeline = [
@@ -114,34 +101,6 @@ function About() {
         </div>
       </div>
 
-      {/* 4. THE SUPPORT TEAM */}
-      <div className="max-w-5xl mx-auto px-6 mb-32">
-        <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-4">
-            <span className="w-8 h-[2px] bg-slate-700"></span>
-            Project Support
-            <span className="w-full h-[2px] bg-slate-700"></span>
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {supportTeam.map((member, index) => (
-                <div key={index} className="bg-slate-900/50 p-6 rounded-2xl border border-slate-800 flex items-start gap-5 hover:bg-slate-900 transition">
-                    <img src={member.image} className="w-16 h-16 rounded-xl object-cover bg-slate-800" />
-                    <div>
-                        <h4 className="text-lg font-bold text-white">{member.name}</h4>
-                        <p className="text-xs font-bold text-slate-500 uppercase mb-2">{member.role}</p>
-                        <p className="text-sm text-slate-400 leading-relaxed mb-3">{member.bio}</p>
-                        <div className="flex flex-wrap gap-2">
-                            {member.tasks.map(task => (
-                                <span key={task} className="text-[10px] bg-white/5 px-2 py-1 rounded text-slate-300 border border-white/5">
-                                    {task}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-      </div>
 
       {/* 5. DEVELOPMENT ROADMAP */}
       <div className="max-w-3xl mx-auto px-6">

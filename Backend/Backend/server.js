@@ -12,6 +12,7 @@ const nodemailer = require('nodemailer');
 const NGO = require('./models/NGO');
 const Volunteer = require('./models/Volunteer');
 const Transaction = require('./models/Transaction');
+const { requireAuth, requireAdmin } = require('./middlewares/authMiddleware');
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -23,42 +24,8 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ngo-portal'
   .catch(err => console.error("❌ DB Error:", err));
 
 
-  const requireAuth = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(' ')[1]; // Strips the "Bearer " part
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Attach the decoded payload to the request
-        next(); // Pass the baton, let them in
-    } catch (err) {
-        return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
-    }
-};
 
 
-const requireAut = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: "Unauthorized: No token provided" });
-    }
-
-    const token = authHeader.split(' ')[1]; // Strips the "Bearer " part
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Attach the decoded payload to the request
-        next(); // Pass the baton, let them in
-    } catch (err) {
-        return res.status(403).json({ error: "Forbidden: Invalid or expired token" });
-    }
-};
 const verifyAdmin = (req, res, next) => {
     // 1. Look at the incoming request and grab the Authorization header
     const token = req.header('Authorization');
