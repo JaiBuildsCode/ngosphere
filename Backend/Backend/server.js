@@ -1,7 +1,9 @@
 const bcrypt = require ('bcryptjs');
 const User = require ('./models/User');
 // require("./instrument.js"); // disabled: OpenTelemetry/Sentry bootstrap was loading a broken @opentelemetry/instrumentation package
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+console.log('dotenv MONGO_URI loaded:', Boolean(process.env.MONGO_URI));
 const jwt = require('jsonwebtoken');
 const express = require('express');
 const Sentry = require("@sentry/node");
