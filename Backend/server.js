@@ -1,6 +1,6 @@
 
 // require("./instrument.js"); // disabled: OpenTelemetry/Sentry bootstrap was loading a broken @opentelemetry/instrumentation package
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const express = require('express');
 const Sentry = require("@sentry/node");
@@ -12,8 +12,13 @@ const NGO = require('./models/NGO');
 const Volunteer = require('./models/Volunteer');
 const Transaction = require('./models/Transaction');
 const app = express();
-app.use(express.json());
 app.use(cors());
+
+const paymentRoutes = require('./routes/payment');
+app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), paymentRoutes.stripeWebhookHandler);
+
+// Stripe webhook middleware above must remain before express.json().
+app.use(express.json());
 
 // CONNECT DB
 mongoose.connect(process.env.MONGO_URI)
@@ -28,13 +33,13 @@ mongoose.connect(process.env.MONGO_URI)
     const adminRoutes = require('./routes/admin');
     const ngosRoutes = require('./routes/ngos');
     const volunteersRoutes = require('./routes/volunteers');
-    const paymentRoutes = require('./routes/payment');
     const transactionsRoutes = require('./routes/transactions');
     const emailRoutes = require('./routes/email');
 
     app.use('/api/admin', adminRoutes);
     app.use('/api/ngos', ngosRoutes);
     app.use('/api/volunteers', volunteersRoutes);
+    app.use('/api/payments', paymentRoutes);
     app.use('/api/payment', paymentRoutes);
     app.use('/api/transactions', transactionsRoutes);
     app.use('/api/send-email', emailRoutes);
@@ -58,4 +63,3 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 System Online on Port ${PORT}`));
-

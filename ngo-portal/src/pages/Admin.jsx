@@ -31,7 +31,7 @@ const MOCK_TRANSACTIONS = [
 // 1. OPEN THE VAULT TO ACCEPT GLOBAL STATS
 const Admin = ({ stats: globalStats }) => {
   const navigate = useNavigate();
-  const [volunteers, setVolunteers] = useState([]);
+  const isDemo = localStorage.getItem('userRole') === 'demo';
   const [view, setView] = useState('dashboard');
   const [data, setData] = useState({ ngos: [], volunteers: [], transactions: [], chartData: [] });
   const [loading, setLoading] = useState(false);
@@ -43,6 +43,11 @@ const Admin = ({ stats: globalStats }) => {
 
   // --- 1. UTILS ---
   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    navigate('/');
+  };
 
   const downloadCSV = (data, filename) => { 
     const headers = Object.keys(data[0]).join(",");
@@ -58,6 +63,11 @@ const refreshData = useCallback(async (isInitial = false) => {
   if (isInitial) setLoading(true);
   
   try {
+    if (isDemo) {
+      const { data: demoData } = await api.get('/admin/demo-data');
+      setData({ ...demoData, transactions: [], chartData: [] });
+      return;
+    }
     // 1. Fire requests concurrently USING ONLY THE API CLIENT. No manual config.
     const [ngoRes, volRes] = await Promise.allSettled([
       api.get('/admin/ngos'),
@@ -92,7 +102,7 @@ const refreshData = useCallback(async (isInitial = false) => {
   } finally { 
     setLoading(false); 
   }
-}, []);
+}, [isDemo]);
 // This tells React: "The split-second this dashboard mounts, run the data fetch."
 useEffect(() => {
     refreshData(true);
@@ -172,7 +182,10 @@ const sendNotification = async (to, name, role, type) => {
     try { 
         await api.delete(deleteChallenge.type === 'NGO' ? `/admin/delete/${deleteChallenge.targetId}` : `/volunteers/${deleteChallenge.targetId}`);
         refreshData();
-    } catch(e) { alert("Purge Failed."); }
+    } catch(error) {
+        console.error("Purge failed:", error);
+        alert(error.response?.data?.error || "Purge Failed.");
+    }
     setDeleteChallenge({ active: false, targetId: null, targetName: '', type: '', input: '' });
   };
 
@@ -192,7 +205,7 @@ const sendNotification = async (to, name, role, type) => {
             <img src="/navbar-sphere.svg" alt="NGO Sphere Logo" className="w-10 h-10 drop-shadow-[0_0_8px_rgba(230,180,34,0.4)]" />
             <div>
                 <h2 className="font-black text-sm tracking-tighter text-white uppercase">NGO<span className="text-yellow-500">SPHERE</span></h2>
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest block">Admin Root</span>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest block">{isDemo ? 'Read-Only Demo' : 'Admin Root'}</span>
             </div>
         </div>
 
@@ -200,11 +213,11 @@ const sendNotification = async (to, name, role, type) => {
             <SidebarLink active={view === 'dashboard'} onClick={() => setView('dashboard')} icon="🏛️" label="OVERSIGHT" />
             <SidebarLink active={view === 'missions'} onClick={() => setView('missions')} icon="🚀" label="OPERATIONS" count={data.ngos.filter(n => n.status === 'Pending').length} />
             <SidebarLink active={view === 'volunteers'} onClick={() => setView('volunteers')} icon="👥" label="PERSONNEL" count={data.volunteers.filter(v => v.status === 'Pending').length} />
-            <SidebarLink active={view === 'broadcast'} onClick={() => setView('broadcast')} icon="📢" label="BROADCAST" />
+            {!isDemo && <SidebarLink active={view === 'broadcast'} onClick={() => setView('broadcast')} icon="📢" label="BROADCAST" />}
             <SidebarLink active={view === 'ledger'} onClick={() => setView('ledger')} icon="🧾" label="AUDIT LEDGER" />
         </nav>
 
-        <button onClick={() => navigate('/')} className="mt-4 py-3 shrink-0 rounded-xl border border-red-900/20 text-red-500 font-bold text-[10px] hover:bg-red-900/10 transition uppercase tracking-widest">
+        <button onClick={logout} className="mt-4 py-3 shrink-0 rounded-xl border border-red-900/20 text-red-500 font-bold text-[10px] hover:bg-red-900/10 transition uppercase tracking-widest">
             Terminate Session
         </button>
       </aside>
@@ -229,7 +242,7 @@ const sendNotification = async (to, name, role, type) => {
                 </div>
 
                 {/* Mobile Logout Button (Icon Only to save space) */}
-                <button onClick={() => navigate('/')} className="md:hidden p-2.5 bg-red-900/20 border border-red-500/30 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition shadow-lg">
+                <button onClick={logout} className="md:hidden p-2.5 bg-red-900/20 border border-red-500/30 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 </button>
                 
@@ -240,6 +253,7 @@ const sendNotification = async (to, name, role, type) => {
                 <span className={loading ? 'animate-spin' : ''}>↻</span> REFRESH DATA
             </button>
         </header>
+        {isDemo && <p className="mb-6 rounded-xl border border-amber-400/40 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-200">Read-only demo: all displayed records are sample data.</p>}
         
 
         {/* --- VIEWS --- */}
@@ -248,7 +262,7 @@ const sendNotification = async (to, name, role, type) => {
         {view === 'dashboard' && (
             <div className="space-y-8 animate-fade-in">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <StatCard label="Funds Raised" value={formatCurrency(globalStats?.totalDonations || 0)} icon="💎" color="text-blue-400" />
+                    <StatCard label="Funds Raised" value={formatCurrency(isDemo ? data.ngos.reduce((sum, ngo) => sum + ngo.raised, 0) : globalStats?.totalDonations || 0)} icon="💎" color="text-blue-400" />
                     <StatCard label="Live Ops" value={data.ngos.filter(n=>n.status==='Approved').length} icon="📡" color="text-emerald-400" />
                     <StatCard label="Personnel" value={data.volunteers.length} icon="⚡" color="text-purple-400" />
                     <StatCard label="Action Items" value={localStats.pending} icon="⚠️" color="text-yellow-400" />
@@ -303,10 +317,10 @@ const sendNotification = async (to, name, role, type) => {
                                 <p className="text-emerald-500 text-[10px] font-bold tracking-tighter bg-emerald-500/10 px-2 py-0.5 rounded-md inline-block">{formatCurrency(ngo.raised || 0)} RAISED</p>
                             </div>
                         </div>
-                        <div className="flex gap-2 z-10">
+                        {!isDemo && <div className="flex gap-2 z-10">
                             {ngo.status === 'Pending' && <button onClick={() => handleApprove(ngo, 'NGO')} className="bg-emerald-600 hover:bg-emerald-500 text-white w-10 h-10 rounded-xl flex items-center justify-center font-bold transition shadow-lg text-lg">✓</button>}
                             <button onClick={() => setDeleteChallenge({ active: true, targetId: ngo._id, targetName: ngo.title, type: 'NGO', input: '' })} className="bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white w-10 h-10 rounded-xl flex items-center justify-center transition">🗑️</button>
-                        </div>
+                        </div>}
                     </div>
                 ))}
             </div>
@@ -349,10 +363,10 @@ const sendNotification = async (to, name, role, type) => {
                                     {vol.status === 'Pending' && <span className="text-[9px] text-yellow-500 font-bold bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded whitespace-nowrap">PENDING</span>}
                                 </div>
                                 
-                                <div className="flex gap-2">
+                                {!isDemo && <div className="flex gap-2">
                                     {vol.status === 'Pending' && <button onClick={() => handleApprove(vol, 'Volunteer')} className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-emerald-500 hover:text-white transition">Approve</button>}
                                     <button onClick={() => setDeleteChallenge({ active: true, targetId: vol._id, targetName: vol.name, type: 'Agent', input: '' })} className="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-red-500 hover:text-white transition uppercase">Del</button>
-                                </div>
+                                </div>}
                             </div>
                             
                         </div>
@@ -362,7 +376,7 @@ const sendNotification = async (to, name, role, type) => {
             </div>
         )}
                 {/* BROADCAST (Mass Emailer) */}
-        {view === 'broadcast' && (
+        {!isDemo && view === 'broadcast' && (
             <div className="glass-panel p-8 rounded-3xl animate-fade-in max-w-2xl mx-auto mt-10">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-black text-white">Emergency Broadcast</h2>
@@ -461,12 +475,12 @@ const sendNotification = async (to, name, role, type) => {
           <MobileNavItem active={view === 'dashboard'} onClick={() => setView('dashboard')} label="Home" icon={<HomeIcon className={`w-6 h-6 ${view === 'dashboard' ? "text-blue-500" : "text-slate-500"}`} />} />
           <MobileNavItem active={view === 'missions'} onClick={() => setView('missions')} label="Ops" icon={<RocketIcon className={`w-6 h-6 ${view === 'missions' ? "text-blue-500" : "text-slate-500"}`} />} />
           <MobileNavItem active={view === 'volunteers'} onClick={() => setView('volunteers')} label="Team" icon={<UsersIcon className={`w-6 h-6 ${view === 'volunteers' ? "text-blue-500" : "text-slate-500"}`} />} />
-          <MobileNavItem active={view === 'broadcast'} onClick={() => setView('broadcast')} label="Alert" icon={<BellIcon className={`w-6 h-6 ${view === 'broadcast' ? "text-blue-500" : "text-slate-500"}`} />} />
+          {!isDemo && <MobileNavItem active={view === 'broadcast'} onClick={() => setView('broadcast')} label="Alert" icon={<BellIcon className={`w-6 h-6 ${view === 'broadcast' ? "text-blue-500" : "text-slate-500"}`} />} />}
           <MobileNavItem active={view === 'ledger'} onClick={() => setView('ledger')} label="Audit" icon={<FileTextIcon className={`w-6 h-6 ${view === 'ledger' ? "text-blue-500" : "text-slate-500"}`} />} />
       </div>
 
       {/* SECURITY MODAL */}
-      {deleteChallenge.active && (
+      {!isDemo && deleteChallenge.active && (
         <div className="fixed inset-0 z-[200] flex justify-center items-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
             <div className="glass-panel p-8 rounded-[2rem] max-w-sm w-full text-center border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.15)]">
                 <div className="text-4xl mb-4">⚠️</div>

@@ -5,26 +5,37 @@ import api from '../api';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+const completeLogin = (response) => {
+    localStorage.setItem('token', response.data.accessToken);
+    localStorage.setItem('userRole', response.data.user.role);
+    window.location.href = '/admin';
+};
 
 const handleLogin = async (e) => {
     e.preventDefault();
-    
+    setLoading(true);
     try {
-        // 1. Use your API client. It already knows the base URL and headers!
         const response = await api.post('/auth/login', { email, password });
-
-        // 2. SECURE THE KEYCARD using the EXACT name the interceptor expects
-        localStorage.setItem('token', response.data.token);
-        
-        // 3. THE NUCLEAR REDIRECT: This forces the browser to drop the old state 
-        // and do a hard reload of the dashboard, guaranteeing your data auto-refreshes.
-        window.location.href = '/admin'; // Change this if your dashboard URL is different
-        
+        completeLogin(response);
     } catch (err) {
         console.error("Login Error:", err);
-        // Axios puts your backend error messages inside err.response.data
         alert(err.response?.data?.error || err.response?.data?.message || "Login failed.");
+    } finally {
+        setLoading(false);
+    }
+};
+
+const handleDemoLogin = async () => {
+    setLoading(true);
+    try {
+        completeLogin(await api.post('/auth/demo-login'));
+    } catch (err) {
+        alert(err.response?.data?.error || "Demo login failed.");
+    } finally {
+        setLoading(false);
     }
 };
  return (
@@ -67,9 +78,13 @@ const handleLogin = async (e) => {
             />
           </div>
 
-          <button className="w-full py-3.5 md:py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-base md:text-lg hover:scale-[1.02] active:scale-[0.98] transition shadow-lg shadow-blue-500/30">
-            Login to Dashboard
+          <button disabled={loading} className="w-full py-3.5 md:py-4 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-base md:text-lg hover:scale-[1.02] active:scale-[0.98] transition shadow-lg shadow-blue-500/30 disabled:opacity-60">
+            {loading ? 'Signing in...' : 'Login to Dashboard'}
           </button>
+          <button type="button" disabled={loading} onClick={handleDemoLogin} className="w-full py-3.5 mt-3 bg-amber-300 text-slate-950 rounded-xl font-black text-sm md:text-base hover:bg-amber-200 transition shadow-lg shadow-amber-500/30 disabled:opacity-60">
+            {loading ? 'Signing in...' : 'Instant Demo Admin Login (Read-Only)'}
+          </button>
+          <p className="text-center text-slate-400 text-xs">Demo access is read-only and uses sample data.</p>
         </form>
 
         <button onClick={() => navigate('/')} className="w-full mt-6 text-slate-500 text-xs md:text-sm font-bold hover:text-white transition">

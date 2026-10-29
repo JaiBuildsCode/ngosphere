@@ -115,6 +115,15 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
+router.post('/auth/demo-login', (req, res) => {
+  if (process.env.DEMO_ADMIN_ENABLED !== 'true' || !process.env.JWT_SECRET || process.env.JWT_SECRET === 'dev_secret') {
+    return res.status(404).json({ error: 'Demo login is unavailable' });
+  }
+
+  const user = { _id: 'demo-admin', name: 'Demo Admin', email: 'demo@example.invalid', role: 'demo' };
+  res.json({ accessToken: signAccessToken(user), user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+});
+
 // Refresh endpoint - POST /api/auth/refresh
 router.post('/auth/refresh', async (req, res) => {
   try {

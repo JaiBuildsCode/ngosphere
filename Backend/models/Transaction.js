@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
-    // Using String allows for real Atlas IDs and custom platform identifiers
     ngoId: {
         type: String,
-        required: true
+        default: 'GLOBAL_PLATFORM_DONATION'
+    },
+    donorName: {
+        type: String,
+        default: 'Anonymous'
     },
     amount: {
         type: Number,
@@ -12,12 +15,19 @@ const transactionSchema = new mongoose.Schema({
     },
     razorpay_payment_id: {
         type: String,
-        required: true,
-        unique: true // Prevents duplicate entry for the same payment
+        unique: true,
+        sparse: true
     },
+    stripeSessionId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    stripePaymentIntentId: String,
     status: {
         type: String,
-        default: 'success'
+        enum: ['Pending', 'Completed', 'success'],
+        default: 'Pending'
     },
     createdAt: {
         type: Date,

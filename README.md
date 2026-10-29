@@ -87,7 +87,10 @@ RAZORPAY_KEY_ID=your_razorpay_key
 RAZORPAY_KEY_SECRET=your_razorpay_secret
 EMAIL_USER=your_email
 EMAIL_PASS=your_email_password
+DEMO_ADMIN_ENABLED=false
 ```
+
+For an explicitly enabled public demo, set `DEMO_ADMIN_ENABLED=true` and configure a strong `JWT_SECRET` on the backend. The demo login endpoint is disabled otherwise, issues a short-lived read-only demo token, and returns synthetic records only. Never put demo credentials or secrets in `VITE_` frontend variables.
 
 Start server:
 ```bash

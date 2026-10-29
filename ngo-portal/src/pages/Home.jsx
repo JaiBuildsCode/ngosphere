@@ -18,7 +18,6 @@ import MapComponent from '../components/MapComponent';
 // 1. CONFIGURATION & ROBUST MOCK DATA
 // ====================================================================================================
 
-const RAZORPAY_KEY_ID = "rzp_test_SAml1TpDN9GROp"; 
 
 const MOCK_NGOS = [
     { _id: "ngo_001", title: "Paani Foundation", city: "Nashik", category: "Environment", image: "https://images.unsplash.com/photo-1542601906990-b4d3fb7d5b43?auto=format&fit=crop&w=800&q=80", desc: "Fighting drought in Maharashtra through water cup competitions and community-led watershed management.", raised: 1250000, goal: 5000000, phone: "+91 99220 01122", email: "contact@paani.org", founded: "2016", impact: "100+ Villages", verified: true, coords: [19.9975, 73.7898], reg_no: "REG/MH/2016/889" },
@@ -101,13 +100,14 @@ const FraudModal = ({ onClose, onSubmit }) => (
     </div>
 );
 
-const PaymentGatewayModal = ({ amount, setAmount, onProceed, onClose }) => (
+const PaymentGatewayModal = ({ amount, setAmount, donorName, setDonorName, onProceed, onClose }) => (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[11000] flex justify-center items-center font-sans p-4">
       <div className="bg-[#0f172a] w-full max-w-md rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.2)] border border-white/5 animate-fade-in relative group">
         <div className="p-10 text-center relative z-10">
             <p className="text-blue-400 text-[10px] font-bold uppercase tracking-[0.25em] mb-6">CONTRIBUTION AMOUNT</p>
-            <div className="relative flex justify-center items-center mb-8 group"><span className="text-5xl md:text-6xl font-black text-white mr-2">₹</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" autoFocus className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 tracking-tighter drop-shadow-xl bg-transparent outline-none w-48 text-center placeholder-slate-700 appearance-none m-0"/></div>
-            <button onClick={onProceed} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:scale-105 transition shadow-lg shadow-blue-500/30 mb-4 flex justify-center items-center gap-2"><span>💳</span> Proceed</button>
+            <div className="relative flex justify-center items-center mb-4 group"><span className="text-5xl md:text-6xl font-black text-white mr-2">₹</span><input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" autoFocus className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 tracking-tighter drop-shadow-xl bg-transparent outline-none w-48 text-center placeholder-slate-700 appearance-none m-0"/></div>
+            <input type="text" value={donorName} onChange={(e) => setDonorName(e.target.value)} placeholder="Your name" className="w-full mb-6 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-blue-500 text-center" />
+            <button onClick={onProceed} className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:scale-105 transition shadow-lg shadow-blue-500/30 mb-4 flex justify-center items-center gap-2"><span>💳</span> Proceed to Stripe</button>
             <button onClick={onClose} className="text-slate-500 text-sm hover:text-white transition">Cancel</button>
         </div>
       </div>
@@ -171,26 +171,6 @@ const AIMatchModal = ({ ngos, onMatch, onClose }) => {
     );
 };
 
-const InteractivePaymentGateway = ({ amount, onSuccess, onClose }) => {
-    const [screen, setScreen] = useState('method');
-    const [loadingMsg, setLoadingMsg] = useState('');
-    const [vpa, setVpa] = useState('');
-
-    const handleProcess = (msg) => { setScreen('processing'); setLoadingMsg(msg); setTimeout(() => { setLoadingMsg("Verifying via Razorpay Protocol..."); setTimeout(() => { setScreen('success'); setTimeout(() => { onSuccess(); onClose(); }, 2000); }, 1500); }, 1500); };
-
-    return (
-        <div className="fixed inset-0 z-[12000] flex justify-center items-center font-sans antialiased p-4">
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose}></div>
-            <div className="bg-slate-900 w-full max-w-sm rounded-2xl shadow-2xl relative z-10 overflow-hidden flex flex-col min-h-[500px] border border-slate-700 animate-fade-in">
-                {screen === 'method' && <div className="flex-1 bg-slate-900 p-6 space-y-3"><p className="text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Select Method</p><div onClick={() => setScreen('upi')} className="bg-slate-800 p-4 rounded-xl border border-slate-700 cursor-pointer flex items-center gap-4"><div>📱</div><div><h4 className="font-bold text-white text-sm">UPI</h4></div></div><div onClick={() => handleProcess("Connecting Bank...")} className="bg-slate-800 p-4 rounded-xl border border-slate-700 cursor-pointer flex items-center gap-4"><div>💳</div><div><h4 className="font-bold text-white text-sm">Card</h4></div></div></div>}
-                {screen === 'upi' && <div className="flex-1 bg-slate-900 flex flex-col p-6"><button onClick={() => setScreen('method')} className="text-xs text-blue-500 mb-4 font-bold text-left">← Back</button><input type="text" placeholder="upi@id" value={vpa} onChange={(e) => setVpa(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-base outline-none text-white mb-4"/><button onClick={() => handleProcess("Verifying VPA...")} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold">Pay Now</button></div>}
-                {screen === 'processing' && <div className="flex-1 flex flex-col items-center justify-center p-10 text-center"><div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div><p className="text-xs text-slate-400 animate-pulse">{loadingMsg}</p></div>}
-                {screen === 'success' && <div className="flex-1 flex flex-col items-center justify-center p-10 text-center"><div className="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mb-6"><span className="text-4xl text-white font-bold">✓</span></div><h3 className="text-2xl font-black text-white">Paid</h3></div>}
-            </div>
-        </div>
-    );
-};
-
 // ====================================================================================================
 // 3. MAIN COMPONENT (HOME)
 // ====================================================================================================
@@ -217,7 +197,6 @@ function Home({ stats: globalStats, onDonate }) {
 
   // Modals Visibility
   const [showDonateModal, setShowDonateModal] = useState(false);
-  const [showRazorpayMock, setShowRazorpayMock] = useState(false);
   const [showFraudModal, setShowFraudModal] = useState(false);
   const [showFoodModal, setShowFoodModal] = useState(false);
   const [showVolModal, setShowVolModal] = useState(false);
@@ -230,6 +209,7 @@ function Home({ stats: globalStats, onDonate }) {
   const [selectedNGO, setSelectedNGO] = useState(null);
   const [donatingTo, setDonatingTo] = useState(null);
   const [donationAmount, setDonationAmount] = useState('');
+  const [donorName, setDonorName] = useState('');
   const [toast, setToast] = useState(null);
   
   // Chat & Assistance (From Original Setup)
@@ -379,48 +359,22 @@ function Home({ stats: globalStats, onDonate }) {
       }
   };
 
-  const handleDonateProceed = () => {
-      if(!donationAmount || isNaN(donationAmount)) return showToast("Enter amount", "error");
-      setShowDonateModal(false);
-      if(window.Razorpay) { handleRazorpayPayment(); } else { setShowRazorpayMock(true); }
-  };
+  const handleDonateProceed = async () => {
+      const amount = Number(donationAmount);
+      if (!Number.isFinite(amount) || amount <= 0) return showToast("Enter a valid amount", "error");
 
-  const handleRazorpayPayment = () => {
-      const options = {
-          key: RAZORPAY_KEY_ID, 
-          amount: parseInt(donationAmount) * 100, 
-          currency: "INR",
-          name: "NGOSphere",
-          description: "Donation",
-          image: "https://cdn-icons-png.flaticon.com/512/2913/2913520.png",
-          handler: function (response) { handlePaymentSuccess(); },
-          prefill: { name: "Jayesh", email: "Jayesh@ngosphere.com" },
-          theme: { color: "#3b82f6" }
-      };
-      try { const rzp = new window.Razorpay(options); rzp.on('payment.failed', function (response){ showToast("Payment Failed", "error"); }); rzp.open(); } catch (e) { setShowRazorpayMock(true); }
-  };
-const handlePaymentSuccess = async () => {
-      const amt = parseInt(donationAmount) || 0;
       try {
-          // 1. THE ACTUAL DATABASE WRITE (You accidentally deleted this!)
-          if (donatingTo && donatingTo._id && !donatingTo._id.startsWith('ngo_')) {
-              await api.put(`/ngos/${donatingTo._id}/donate`, { amount: amt });
-          }
-
-          // 2. The local UI update (Updates the NGO card instantly)
-          setNgos(prev => prev.map(n => n._id === donatingTo?._id ? { ...n, raised: (n.raised || 0) + amt } : n));
-          setFilteredNgos(prev => prev.map(n => n._id === donatingTo?._id ? { ...n, raised: (n.raised || 0) + amt } : n));
-          
-          // 3. The global UI update (Updates the top dashboard instantly)
-          onDonate(amt);
-          
-          showToast(`₹${amt} Donated Successfully! Added to Ledger.`);
-      } catch (e) {
-          console.error("Database Save Failed:", e);
-          showToast(`Database Error: Could not save donation`, 'error');
-      } finally {
-          setShowRazorpayMock(false); 
-          setDonatingTo(null);
+          setShowDonateModal(false);
+          const { data } = await api.post('/payments/create-checkout-session', {
+              amount,
+              donorName: donorName.trim() || 'Anonymous',
+              ngoId: donatingTo && !donatingTo._id.startsWith('ngo_') ? donatingTo._id : undefined
+          });
+          if (!data.url) throw new Error('Stripe did not return a checkout URL');
+          window.location.href = data.url;
+      } catch (error) {
+          console.error('Stripe Checkout failed:', error);
+          showToast(error.response?.data?.error || 'Could not start Stripe Checkout', 'error');
       }
   };
 
@@ -448,8 +402,7 @@ const handlePaymentSuccess = async () => {
       
       {/* FLOATING COMPONENTS */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      {showDonateModal && <PaymentGatewayModal amount={donationAmount} setAmount={setDonationAmount} onProceed={handleDonateProceed} onClose={() => setShowDonateModal(false)} />}
-      {showRazorpayMock && <InteractivePaymentGateway amount={donationAmount} onSuccess={handlePaymentSuccess} onClose={() => setShowRazorpayMock(false)} />}
+      {showDonateModal && <PaymentGatewayModal amount={donationAmount} setAmount={setDonationAmount} donorName={donorName} setDonorName={setDonorName} onProceed={handleDonateProceed} onClose={() => setShowDonateModal(false)} />}
       {showFraudModal && <FraudModal onClose={() => setShowFraudModal(false)} onSubmit={() => { setShowFraudModal(false); showToast("Report ID #9921 Created", "success"); }} />}
       {liveNotification && <div className="fixed bottom-32 left-8 bg-slate-900/80 backdrop-blur-md border border-slate-700/50 text-white px-6 py-4 rounded-2xl shadow-2xl border-l-4 border-l-emerald-500 font-bold z-50 animate-slideUp items-center gap-3 hidden md:flex"><span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> {liveNotification}</div>}
 
